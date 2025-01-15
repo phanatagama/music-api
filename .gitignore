@@ -1,0 +1,8 @@
+.idea
+node_modules
+.env
+.env.production
+package-lock.json
+*.pem 
+*.zip
+pnpm-lock.yaml
