@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const Hapi = require('@hapi/hapi');
+const Jwt = require('@hapi/jwt');
 
 const AlbumService = require('./services/postgres/AlbumService');
 const AlbumSchema = require('./validator/music/schema/album');
@@ -12,9 +13,47 @@ const album = require('./api/music/album');
 const song = require('./api/music/song');
 const ClientError = require('./exceptions/ClientError');
 
+// users
+const users = require('./api/music/users');
+const UsersService = require('./services/postgres/UsersService');
+const UsersPayloadSchema = require('./validator/music/schema/users');
+
+// authentications
+const authentications = require('./api/music/authentications');
+const AuthenticationsService = require('./services/postgres/AuthenticationsService');
+const {
+  PostAuthenticationPayloadSchema,
+  PutAuthenticationPayloadSchema,
+  DeleteAuthenticationPayloadSchema,
+} = require('./validator/music/schema/authentications');
+const TokenManager = require('./tokenize/TokenManager');
+
+// playlists
+const playlists = require('./api/music/playlists');
+const PlaylistsService = require('./services/postgres/PlaylistsService');
+const {
+  PostPlaylistPayloadSchema,
+  PostSongToPlaylistPayloadSchema,
+  DeleteSongFromPlaylistPayloadSchema,
+} = require('./validator/music/schema/playlists');
+
+// collaborations
+const collaborations = require('./api/music/collaborations');
+const CollaborationsService = require('./services/postgres/CollaborationsService');
+const CollaborationsPayloadSchema = require('./validator/music/schema/collaborations');
+
+// playlistActivites
+const playlistActivities = require('./api/music/playlistActivities');
+const PlaylistActivitiesService = require('./services/postgres/PlaylistActivitiesService');
+
 const init = async () => {
   const songService = new SongService();
   const albumService = new AlbumService();
+  const usersService = new UsersService();
+  const authenticationsService = new AuthenticationsService();
+  const collaborationsService = new CollaborationsService();
+  const playlistsService = new PlaylistsService(collaborationsService);
+  const playlistActivitiesService = new PlaylistActivitiesService();
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -57,6 +96,29 @@ const init = async () => {
     // if response is not an error
     return h.continue;
   });
+  // register jwt schema for authentication
+  await server.register([
+    {
+      plugin: Jwt,
+    },
+  ]);
+
+  // define strategy for authentication
+  server.auth.strategy('musicapp_jwt', 'jwt', {
+    keys: process.env.ACCESS_TOKEN_KEY,
+    verify: {
+      aud: false,
+      iss: false,
+      sub: false,
+      maxAgeSec: process.env.ACCESS_TOKEN_AGE,
+    },
+    validate: (artifacts) => ({
+      isValid: true,
+      credentials: {
+        id: artifacts.decoded.payload.id,
+      },
+    }),
+  });
 
   // register all plugin
   await server.register([
@@ -74,6 +136,59 @@ const init = async () => {
         service: albumService,
         validator: MusicValidator,
         schema: AlbumSchema,
+      },
+    },
+    {
+      plugin: users,
+      options: {
+        service: usersService,
+        validator: MusicValidator,
+        schema: UsersPayloadSchema,
+      },
+    },
+    {
+      plugin: authentications,
+      options: {
+        authenticationsService,
+        validator: MusicValidator,
+        schema: {
+          PostAuthenticationPayloadSchema,
+          PutAuthenticationPayloadSchema,
+          DeleteAuthenticationPayloadSchema,
+        },
+        usersService,
+        tokenManager: TokenManager,
+      },
+    },
+    {
+      plugin: playlists,
+      options: {
+        playlistsService,
+        songService,
+        playlistActivitiesService,
+        validator: MusicValidator,
+        schema: {
+          PostPlaylistPayloadSchema,
+          PostSongToPlaylistPayloadSchema,
+          DeleteSongFromPlaylistPayloadSchema,
+        },
+      },
+    },
+    {
+      plugin: collaborations,
+      options: {
+        collaborationsService,
+        playlistsService,
+        usersService,
+        validator: MusicValidator,
+        schema: CollaborationsPayloadSchema,
+      },
+    },
+    {
+      plugin: playlistActivities,
+      options: {
+        playlistActivitiesService,
+        playlistsService,
       },
     },
   ]);
