@@ -15,6 +15,6 @@ module.exports = {
       schema,
     });
 
-    server.route(routes(albumHandler));
+    server.route(routes(albumHandler, schema));
   },
 };

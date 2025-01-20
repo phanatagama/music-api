@@ -1,3 +1,4 @@
+const Joi = require('joi');
 const routes = (handler) => [
   {
     method: 'GET',
@@ -5,6 +6,9 @@ const routes = (handler) => [
     handler: (req, h) => handler.getPlaylistsHandler(req, h),
     options: {
       auth: 'musicapp_jwt',
+      tags: ['api', 'playlists'],
+      description: 'Get all playlists',
+      notes: 'Returns all playlists',
     },
   },
   {
@@ -13,6 +17,12 @@ const routes = (handler) => [
     handler: (req, h) => handler.postPlaylistHandler(req, h),
     options: {
       auth: 'musicapp_jwt',
+      tags: ['api', 'playlists'],
+      description: 'Add new playlist',
+      notes: 'Add new playlist to database',
+      validate: {
+        payload: handler._schema.PostPlaylistPayloadSchema,
+      },
     },
   },
   {
@@ -21,6 +31,14 @@ const routes = (handler) => [
     handler: (req, h) => handler.deletePlaylistByIdHandler(req, h),
     options: {
       auth: 'musicapp_jwt',
+      tags: ['api', 'playlists'],
+      description: 'Delete playlist by id',
+      notes: 'Delete playlist by id',
+      validate: {
+        params: Joi.object({
+          id: Joi.string().required().description('id playlist'),
+        }),
+      },
     },
   },
   {
@@ -30,6 +48,15 @@ const routes = (handler) => [
       handler.postSongToPlaylistUsingPlaylistIdHandler(req, h),
     options: {
       auth: 'musicapp_jwt',
+      tags: ['api', 'playlists'],
+      description: 'Add song to playlist by id',
+      notes: 'Add song to playlist by id',
+      validate: {
+        params: Joi.object({
+          id: Joi.string().required().description('id playlist'),
+        }),
+        payload: handler._schema.PostSongToPlaylistPayloadSchema,
+      },
     },
   },
   {
@@ -39,6 +66,14 @@ const routes = (handler) => [
       handler.getSongsInPlaylistUsingPlaylistIdHandler(req, h),
     options: {
       auth: 'musicapp_jwt',
+      tags: ['api', 'playlists'],
+      description: 'Get all songs in playlist by id',
+      notes: 'Get all songs in playlist by id',
+      validate: {
+        params: Joi.object({
+          id: Joi.string().required().description('id playlist'),
+        }),
+      },
     },
   },
   {
@@ -48,6 +83,15 @@ const routes = (handler) => [
       handler.deleteSongFromPlaylistUsingPlaylistIdHandler(req, h),
     options: {
       auth: 'musicapp_jwt',
+      tags: ['api', 'playlists'],
+      description: 'Delete song from playlist by id',
+      notes: 'Delete song from playlist by id',
+      validate: {
+        params: Joi.object({
+          id: Joi.string().required().description('id playlist'),
+        }),
+        payload: handler._schema.DeleteSongFromPlaylistPayloadSchema,
+      },
     },
   },
 ];

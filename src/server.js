@@ -4,6 +4,8 @@ const path = require('node:path');
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
 const Inert = require('@hapi/inert');
+const Vision = require('@hapi/vision');
+const HapiSwagger = require('hapi-swagger');
 
 const AlbumService = require('./services/postgres/AlbumService');
 const AlbumSchema = require('./validator/music/schema/album');
@@ -120,13 +122,30 @@ const init = async () => {
     // if response is not an error
     return h.continue;
   });
+  const swaggerOptions = {
+    grouping: 'tags',
+    info: {
+      title: 'Music API V3 Documentation',
+      version: '1.0.1',
+      contact: {
+        name: 'Phanatagama',
+        url: 'https://www.phanatagama.vercel.app/',
+        email: 'phanatagama@gmail.com',
+      },
+      description:
+        'Music Api V3 built with Hapi Framework for complete dicoding submission of Fundamental Backend Javascript',
+    },
+  };
   // register jwt schema for authentication
   await server.register([
+    Inert,
+    Vision,
     {
-      plugin: Jwt,
+      plugin: HapiSwagger,
+      options: swaggerOptions,
     },
     {
-      plugin: Inert,
+      plugin: Jwt,
     },
   ]);
 

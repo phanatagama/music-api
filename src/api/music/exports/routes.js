@@ -6,6 +6,9 @@ const routes = (handler) => [
     handler: (req, h) => handler.postExportPlaylistHandler(req, h),
     options: {
       auth: 'musicapp_jwt',
+      tags: ['api', 'playlist'],
+      description: 'Export playlist to file',
+      notes: 'Export playlist to file and send to your email',
     },
   },
 ];
