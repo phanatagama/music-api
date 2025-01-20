@@ -1,7 +1,9 @@
 require('dotenv').config();
 
+const path = require('node:path');
 const Hapi = require('@hapi/hapi');
 const Jwt = require('@hapi/jwt');
+const Inert = require('@hapi/inert');
 
 const AlbumService = require('./services/postgres/AlbumService');
 const AlbumSchema = require('./validator/music/schema/album');
@@ -46,6 +48,21 @@ const CollaborationsPayloadSchema = require('./validator/music/schema/collaborat
 const playlistActivities = require('./api/music/playlistActivities');
 const PlaylistActivitiesService = require('./services/postgres/PlaylistActivitiesService');
 
+// exports
+const _exports = require('./api/music/exports');
+const producerService = require('./services/rabbitmq/ProducerService');
+const ExportSongsFromPlaylistSchema = require('./validator/music/schema/exports');
+
+// uploads
+const uploads = require('./api/music/uploads');
+const StorageService = require('./services/storage/StorageService');
+const ImageHeadersSchema = require('./validator/music/schema/uploads');
+
+// likeAlbum
+const likeAlbum = require('./api/music/likeAlbum');
+const LikeAlbumService = require('./services/postgres/LikeAlbumService');
+const CacheService = require('./services/redis/CacheService');
+
 const init = async () => {
   const songService = new SongService();
   const albumService = new AlbumService();
@@ -54,6 +71,11 @@ const init = async () => {
   const collaborationsService = new CollaborationsService();
   const playlistsService = new PlaylistsService(collaborationsService);
   const playlistActivitiesService = new PlaylistActivitiesService();
+  const storageService = new StorageService(
+    path.resolve(__dirname, './api/music/uploads/assets/images')
+  );
+  const cacheService = new CacheService();
+  const likeAlbumService = new LikeAlbumService(cacheService);
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -84,6 +106,8 @@ const init = async () => {
         return h.continue;
       }
 
+      console.log(response);
+
       // error handler for server error
       const newResponse = h.response({
         status: 'error',
@@ -100,6 +124,9 @@ const init = async () => {
   await server.register([
     {
       plugin: Jwt,
+    },
+    {
+      plugin: Inert,
     },
   ]);
 
@@ -133,7 +160,8 @@ const init = async () => {
     {
       plugin: album,
       options: {
-        service: albumService,
+        albumService,
+        songService,
         validator: MusicValidator,
         schema: AlbumSchema,
       },
@@ -189,6 +217,31 @@ const init = async () => {
       options: {
         playlistActivitiesService,
         playlistsService,
+      },
+    },
+    {
+      plugin: _exports,
+      options: {
+        producerService,
+        playlistsService,
+        validator: MusicValidator,
+        schema: ExportSongsFromPlaylistSchema,
+      },
+    },
+    {
+      plugin: uploads,
+      options: {
+        storageService,
+        albumService,
+        validator: MusicValidator,
+        schema: ImageHeadersSchema,
+      },
+    },
+    {
+      plugin: likeAlbum,
+      options: {
+        likeAlbumService,
+        albumService,
       },
     },
   ]);

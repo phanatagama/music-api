@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
@@ -43,7 +45,6 @@ class PlaylistsService {
       await this._pool.query('COMMIT');
     } catch (e) {
       await this._pool.query('ROLLBACK');
-      console.error(e);
 
       throw new InvariantError('Gagal menghapus playlist');
     }

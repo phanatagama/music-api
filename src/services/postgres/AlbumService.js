@@ -19,6 +19,7 @@ class AlbumsService {
     const result = await this._pool.query(query);
 
     if (!result.rows[0].id) {
+      console.log(result.rows[0].id);
       throw new InvariantError('Album gagal ditambahkan');
     }
 
@@ -32,63 +33,28 @@ class AlbumsService {
 
   async getAlbumById(id) {
     const query = {
-      text: `
-      SELECT 
-        albums.*, 
-        songs.id AS song_id, 
-        songs.title AS song_title,
-        songs.performer AS song_performer
-      FROM 
-        albums 
-        INNER JOIN songs ON albums.id = songs.album_id
-      WHERE 
-        albums.id = $1
-      `,
+      text: 'SELECT * FROM albums WHERE id = $1',
       values: [id],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      const query2 = {
-        text: 'SELECT * FROM albums WHERE id = $1',
-        values: [id],
-      };
-
-      const result2 = await this._pool.query(query2);
-
-      if (!result2.rows.length) {
-        throw new NotFoundError('Album tidak ditemukan');
-      }
-
-      return result2.rows.map(({ id: _id, name, year }) => ({
-        id: _id,
-        name,
-        year,
-        songs: [],
-      }))[0];
+      throw new NotFoundError('Album tidak ditemukan');
     }
 
-    const { id: albumId, name, year } = result.rows[0];
-
-    const songs = result.rows.map((row) => ({
-      id: row.song_id,
-      title: row.song_title,
-      performer: row.song_performer,
-    }));
-
-    return {
-      id: albumId,
-      name,
-      year,
-      songs,
-    };
+    return result.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      coverUrl: row.cover_url,
+      year: row.year,
+    }))[0];
   }
 
-  async editAlbumById(id, { name, year }) {
+  async editAlbumById(id, { name, year, coverUrl }) {
     const query = {
-      text: 'UPDATE albums SET name = $1, year = $2 WHERE id = $3 RETURNING id',
-      values: [name, year, id],
+      text: 'UPDATE albums SET name = $1, year = $2, cover_url = $3 WHERE id = $4 RETURNING id',
+      values: [name, year, coverUrl, id],
     };
 
     const result = await this._pool.query(query);

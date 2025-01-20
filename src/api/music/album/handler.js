@@ -1,6 +1,7 @@
 class AlbumsHandler {
-  constructor(service, validator, schema) {
-    this._service = service;
+  constructor({ albumService, songService, validator, schema }) {
+    this._albumService = albumService;
+    this._songService = songService;
     this._validator = validator;
     this._schema = schema;
   }
@@ -9,7 +10,7 @@ class AlbumsHandler {
     this._validator.validatePayloadWithSchema(req.payload, this._schema);
     const { name = 'untitled album', year } = req.payload;
 
-    const albumId = await this._service.addAlbum({ name, year });
+    const albumId = await this._albumService.addAlbum({ name, year });
 
     const response = h.response({
       status: 'success',
@@ -23,7 +24,7 @@ class AlbumsHandler {
   }
 
   async getAlbumsHandler() {
-    const albums = await this._service.getAlbums();
+    const albums = await this._albumService.getAlbums();
 
     return {
       status: 'success',
@@ -36,12 +37,16 @@ class AlbumsHandler {
   async getAlbumByIdHandler(req, h) {
     const { id } = req.params;
 
-    const album = await this._service.getAlbumById(id);
+    const songs = await this._songService.getSongsInAlbum(id);
+    const album = await this._albumService.getAlbumById(id);
 
     const response = h.response({
       status: 'success',
       data: {
-        album,
+        album: {
+          ...album,
+          songs,
+        },
       },
     });
 
@@ -53,7 +58,7 @@ class AlbumsHandler {
 
     this._validator.validatePayloadWithSchema(req.payload, this._schema);
 
-    await this._service.editAlbumById(id, req.payload);
+    await this._albumService.editAlbumById(id, req.payload);
 
     return h.response({
       status: 'success',
@@ -64,7 +69,7 @@ class AlbumsHandler {
   async deleteAlbumByIdHandler(req, h) {
     const { id } = req.params;
 
-    await this._service.deleteAlbumById(id);
+    await this._albumService.deleteAlbumById(id);
 
     return h.response({
       status: 'success',
